@@ -6,14 +6,24 @@ from nltk.tokenize import sent_tokenize
 from models.model_builder import ExtSummarizer
 
 
-def preprocess(source_fp):
+"""
+Modified preprocess function to be able to preprocess through both
+source file paths and source texts directly
+    isFilePath=True: input is source file path
+    isFilePath=False: input is source text
+"""
+def preprocess(source_fp, isFilePath):
     """
     - Remove \n
     - Sentence Tokenize
     - Add [SEP] [CLS] as sentence boundary
     """
-    with open(source_fp) as source:
-        raw_text = source.read().replace("\n", " ").replace("[CLS] [SEP]", " ")
+    if isFilePath: # if input is source file path
+        with open(source_fp) as source:
+            raw_text = source.read().replace("\n", " ").replace("[CLS] [SEP]", " ")
+    else: # if input is source text
+        raw_text = source_fp.replace("\n", " ").replace("[CLS] [SEP]", " ")
+
     sents = sent_tokenize(raw_text)
     processed_text = "[CLS] [SEP]".join(sents)
     return processed_text, len(sents)
@@ -106,10 +116,13 @@ def test(model, input_data, result_path, max_length, block_trigram=True):
             for i in range(len(pred)):
                 save_pred.write(pred[i].strip() + "\n")
 
-
-def summarize(raw_txt_fp, result_fp, model, max_length=3, max_pos=512, return_summary=True):
+"""
+New parameter isFilePath is added here to provide whether the 
+source input is a file path or text
+"""
+def summarize(raw_txt_fp, isFilePath, result_fp, model, max_length=3, max_pos=512, return_summary=True):
     model.eval()
-    processed_text, full_length = preprocess(raw_txt_fp)
+    processed_text, full_length = preprocess(raw_txt_fp, isFilePath)
     input_data = load_text(processed_text, max_pos, device="cpu")
     test(model, input_data, result_fp, max_length, block_trigram=True)
     if return_summary:
